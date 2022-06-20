@@ -1,0 +1,40 @@
+digraph {
+	fake [style=invisible]
+	DNWPY1
+	DJWPY1
+	PD
+	DNWPD1
+	DNWLP1
+	LP [root=true shape=doublecircle]
+	DJWPD2
+	DJWLP1
+	DJWLP2
+	DJWPY2
+	DJWPD1
+	PY
+	fake -> LP [style=bold]
+	LP -> DNWPY1 [label=Dpy]
+	PY -> DNWPD1 [label=Dpd]
+	PD -> DNWLP1 [label=Dlp]
+	DNWPY1 -> LP [label=ND]
+	DNWPY1 -> PY [label=Dpy]
+	DNWPD1 -> PY [label=ND]
+	DNWPD1 -> PD [label=Dpd]
+	DNWLP1 -> PD [label=ND]
+	DNWLP1 -> LP [label=Dlp]
+	LP -> DJWPD1 [label=Dpd]
+	DJWPD1 -> LP [label=ND]
+	DJWPD1 -> DJWPD2 [label=Dpd]
+	DJWPD2 -> LP [label=ND]
+	DJWPD2 -> PD [label=Dpd]
+	PY -> DJWLP1 [label=Dlp]
+	DJWLP1 -> PY [label=ND]
+	DJWLP1 -> DJWLP2 [label=Dlp]
+	DJWLP2 -> PY [label=ND]
+	DJWLP2 -> LP [label=Dlp]
+	PD -> DJWPY1 [label=Dpy]
+	DJWPY1 -> PD [label=ND]
+	DJWPY1 -> DJWPY2 [label=Dpy]
+	DJWPY2 -> PD [label=ND]
+	DJWPY2 -> PY [label=Dpy]
+}
