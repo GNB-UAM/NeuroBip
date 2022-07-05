@@ -74,17 +74,3 @@ class DataAcquisitor:
             self.thread.join()
         daq.cleanChannels()
         daq.closeDevice()
-        
-
-
-import signal
-
-def signal_handler(sig, frame):
-    daq.stopAll()
-
-signal.signal(signal.SIGINT, signal_handler)
-daq = DataAcquisitor()
-daq.openDevice()
-daq.getSession()
-daq.setFrequency(10000)
-daq.runReading()

@@ -35,7 +35,7 @@ class CustomWorld (Framework):
             self.numRobots = 1
         
         if self.mode == 2:
-            self.numRobots = 2
+            self.numRobots = 1
         
         self.robots = [self.createRobot(5000 + i) for i in range(self.numRobots)]
         
@@ -64,21 +64,23 @@ class CustomWorld (Framework):
                 self.recordedData[index].append((robot.livingTime, robot.maxDistance, robot.port))
                 robot.communication.close()
                 if self.experiment == 1:
+                    time.sleep(5)
                     self.robots[index] = self.createRobot(5000 + index)
                 elif self.experiment == 2:
                     self.deadRobots += 1
         if self.experiment == 2 and self.deadRobots == self.numRobots:
+            time.sleep(5)
             self.deadRobots = 0
             for index in range(len(self.robots)):
                 self.robots[index] = self.createRobot(5000 + index)
 
         self.time = currentTime
-        """
-        if self.viewCenter[0] - self.robot.getPosition()[0] > 10:
-            self.viewCenter = (10 + self.robot.getPosition()[0], 20)
-        elif self.viewCenter[0] - self.robot.getPosition()[0] < -10:
-            self.viewCenter = (-10 + self.robot.getPosition()[0], 20)
-        """
+        
+        if self.viewCenter[0] - self.robots[0].getPosition()[0] > 10:
+            self.viewCenter = (10 + self.robots[0].getPosition()[0], 20)
+        elif self.viewCenter[0] - self.robots[0].getPosition()[0] < -10:
+            self.viewCenter = (-10 + self.robots[0].getPosition()[0], 20)
+        
     
     def resetRobotsWithParams(self, params):
         if len(self.robots) > 0:

@@ -4,7 +4,7 @@ from Invariant import Invariant
 
 class Controller:
     def __init__(self, servos, gyro, communication, oscillators, lights = None):
-        self.criticalAngle = 45*pi/180
+        self.criticalAngle = 20*pi/180
         self.minAngle = -20*pi/180
         self.maxAngle = 20*pi/180
         self.servos = servos
@@ -36,7 +36,7 @@ class Controller:
             self.detectionTime = received[1]
             frequencyMultiple, amplitudeMultiples = self.invariant.calculate(self.detectedNeuron, self.detectionTime)
             if frequencyMultiple is not None and amplitudeMultiples is not None:
-                pass#print("Invariants: f={}, amps={}".format(frequencyMultiple, amplitudeMultiples))
+                print("Invariants: f={}, amps={}".format(frequencyMultiple, amplitudeMultiples))
             self.updateOscillators(frequencyMultiple, amplitudeMultiples)
         
         self.gyroAngle = self.gyro.getAngle(1)
@@ -47,13 +47,13 @@ class Controller:
         self.communication.send(self.gyroAngle, self.servoAngles)
         self.setOscillatorsAngles(self.servoAngles)
 
-        if abs(self.gyroAngle) <= self.criticalAngle:
-            self.updateLights(self.detectedNeuron)
-            self.nextAngles = self.getOscillatorsNextAngles(deltaTime)
-            self.setServosAngles(self.nextAngles)
-        else:
+
+        self.updateLights(self.detectedNeuron)
+        self.nextAngles = self.getOscillatorsNextAngles(deltaTime)
+        self.setServosAngles(self.nextAngles)
+        if abs(self.gyroAngle) >= self.criticalAngle:
             self.updateLights(-1)
-            pidAngles = self.pid.save(self.gyroAngle, self.servoAngles, deltaTime)
+            #pidAngles = self.pid.save(self.gyroAngle, self.servoAngles, deltaTime)
             """
             self.setServosAngles(pidAngles)
             """

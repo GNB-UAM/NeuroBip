@@ -16,13 +16,13 @@ inv2 = pd - py
 worstPeriod1 = pdEnd - lp
 worstPeriod2 = pdEnd - pd
 
-data_dict_invariant = {"Period (ms)": periods,
-             "LP-PD (ms)": inv1[:-1],
-             "PY-PD (ms)": inv2[:-1],}
+data_dict_invariant = {"Period": periods,
+             "LP-PD": inv1[:-1],
+             "PY-PD": inv2[:-1],}
 
-data_dict_other = {"Period (ms)": periods,
-             "LP-PD (ms)": worstPeriod1[:-1],
-             "PD Burst (ms)": worstPeriod2[:-1],}
+data_dict_other = {"Period": periods,
+             "LP-PD": worstPeriod1[:-1],
+             "PD Burst": worstPeriod2[:-1],}
 
 data = pad.DataFrame(data_dict_invariant)
 sns.pairplot(data)
