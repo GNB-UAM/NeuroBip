@@ -1,4 +1,6 @@
 import pandas as pd
+import numpy as np
+from math import inf, pi
 import matplotlib.pyplot as plt
 import os
 from OldClassifier.OldClassifierWrapper import OldClassifierWrapper
@@ -9,19 +11,28 @@ import select
 import signal
 from PyComedi.PyComedi import DataAcquisitor
 
+LIMIT_ANGLE = pi/4
+
 ONLINE = False
 SIMULATION = False
 SAVE = True
 TIME = 30 # Offline time in minutes
+
+sampleRate = 1000
+#    local/simulation   robot
+ip = '127.0.0.1'#'192.168.4.1'
 
 if not ONLINE:
     # Importing the dataset
     filename = os.path.join(os.path.dirname(__file__), "datasets/02-Mar-2022/15h42m45s-02-Mar-2022.dat")
     dataset = pd.read_csv(filename, delimiter=' ', header=2)
 
+
     extra = dataset.iloc[:, 2].to_numpy()
-    extra = extra[:TIME*60*sampleRate]
     pd = dataset.iloc[:, 3].to_numpy()
+
+    extra = extra[::10]
+    pd = pd[::10]
 
     plt.plot(extra[:5*sampleRate], label = 'extra')
     plt.plot(pd[:5*sampleRate], label = 'pd')
@@ -29,6 +40,7 @@ if not ONLINE:
     plt.show()
 
 else:
+    
     def signal_handler(sig, frame):
         daq.stopAll()
 
@@ -38,13 +50,15 @@ else:
     daq.getSession()
 
 if SAVE:
+    experimentTime = []
     detectedNeurons = []
     detectionTimes = []
     robotAngles = []
+    saveExtra = []
+    savePd = []
+    saveClassification = []
 
-sampleRate = 10000
-#    local/simulation   robot
-ip = '127.0.0.1'#'192.168.4.1'
+
 
 criticalAngle = 1 #RAD 60 degrees 
 
@@ -58,13 +72,14 @@ mapClassificationClassic = {'LP': 0, 'PY': 1, 'PD': 2}
 mapClassificationClassicWorstInvariant1 = {'LP': 2, 'PY': 0, 'PD': 1}
 mapClassificationClassicWorstInvariant2 = {'LP': 1, 'PY': 2, 'PD': 0}
 
-def classifyAndSend(extra, pd, currentTime):
+def classifyAndSend(extra, pd, currentTime, oldAngles):
     global currenClassif, detectedNeurons, detectionTimes
     classification = oldClassifier.predict(extra, pd)
-    detectionTime = ((currentTime / 10000) % 1) * 10000
+    #detectionTime = ((currentTime / 10000) % 1) * 10000
+    detectionTime = currentTime - initialTime
     if classification is not None:
         if currenClassif != classification:
-            print(classification)
+            #print(classification)
             currenClassif = classification
 
             if SAVE:
@@ -78,32 +93,122 @@ def classifyAndSend(extra, pd, currentTime):
 
     msg = select.select([socketComm], [], [], 0.001)
     if len(msg[0]) > 0:
-        angles = struct.unpack("!ddddd", socketComm.recv(1024))
-        return angles.append(detectionTime)
-    return None
+        angles = list(struct.unpack("!ddddd", socketComm.recv(1024)))
+        angles.append(detectionTime)
+        return angles
+    return oldAngles
 
 
 injectionCurrent = -1/10
+initialTime = time()
+nextIntervalTime = initialTime
+angles = np.zeros((6,1))
+print("Starting")
 
 if not ONLINE:
     for i in range(len(extra)):
         currentTime = time()
-        if i % (len(extra)//10) == 0:
-            print("{} %".format(i/len(extra)*100))
-        classifyAndSend(extra[i], pd[i], currentTime)
-        sleep(max(0, 1/sampleRate - (time() - currentTime)))
+        nextIntervalTime = nextIntervalTime + (1.0 / sampleRate)
+
+        #if i % (len(extra)//10) == 0:
+        #    print("{} %".format(i/len(extra)*100))
+
+        angles = classifyAndSend(extra[i], pd[i], currentTime, angles)
+        
+
+        if angles is not None:
+            if abs(angles[0]) >= LIMIT_ANGLE:
+                if SAVE:
+                    print(i)
+                    print("Saving experiment %s: duration %.2fs"%(strftime("%Y%m%d-%H%M%S"), currentTime-initialTime))
+                    with open("Results/data/{}_sorted.csv".format(strftime("%Y%m%d-%H%M%S")), "w") as f:
+                        for j in range(len(detectedNeurons)):
+                            f.write("{},{}\n".format(detectedNeurons[j], detectionTimes[j]))
+                    with open("Results/data/{}_angles.csv".format(strftime("%Y%m%d-%H%M%S")), "w") as f:
+                        for j in range(len(robotAngles)):
+                            f.write("%f %f %f %d"%(experimentTime[j], saveExtra[j], savePd[j], saveClassification[j]))
+                            #f.write("{},".format(robotAngles[j]))
+                            for angle in robotAngles[j]:
+                                f.write(" %f"%(angle))
+                            f.write("\n")
+
+                # Clean arrays
+                experimentTime = []
+                detectedNeurons = []
+                detectionTimes = []
+                robotAngles = []
+                saveExtra = []
+                savePd = []
+                saveClassification = []
+                angles = np.zeros((6,1))
+                    
+
+
+                print("New robot in 5 seconds...")
+                sleep(5) # Wait 5s until next robot
+                initialTime = time()
+            
+
+        experimentTime.append(currentTime - initialTime)
+        robotAngles.append(angles)
+        saveExtra.append(extra[i])
+        savePd.append(pd[i])
+        saveClassification.append(mapClassificationClassic[currenClassif])
+
+
+        sleep(max(0, nextIntervalTime - time()))
 else:
     # TODO: change to for with time limit
     while True:
         currentTime = time()
         data = daq.read([2, 1])
+
+        #print("%f %f\n"%(data[0], data[1]))
+
         angles = classifyAndSend(data[0], data[1], currentTime)
+        
+
+
         if angles is not None and SAVE:
-            if abs(angles[0]) >= criticalAngle:
-                daq.write([channel], injectionCurrent)
+            """if abs(angles[0]) >= criticalAngle:
+                daq.write([0], injectionCurrent)
             else:
-                daq.write([channel], 0)
-            robotAngles.append(angles)
+                daq.write([0], [0])"""
+
+            if abs(angles[0]) >= LIMIT_ANGLE:
+                if SAVE:
+                    with open("Results/data/sorted_{}.csv".format(strftime("%Y%m%d-%H%M%S")), "w") as f:
+                        for j in range(len(detectedNeurons)):
+                            f.write("{},{}\n".format(detectedNeurons[j], detectionTimes[j]))
+                    with open("Results/data/angles_{}.csv".format(strftime("%Y%m%d-%H%M%S")), "w") as f:
+                        for j in range(len(robotAngles)):
+                            f.write("%f %f %f %d"%(experimentTime[j], saveExtra[j], savePd[j], saveClassification[j]))
+                            f.write("{},".format(robotAngles[j]))
+                            f.write("\n")
+
+                    # Clean arrays
+                    experimentTime = []
+                    detectedNeurons = []
+                    detectionTimes = []
+                    robotAngles = []
+                    saveExtra = []
+                    savePd = []
+                    saveClassification = []
+                    initialTime = time()
+
+
+                sleep(5) # Wait 5s until next robot
+                
+            else:
+                experimentTime.append(currentTime - initialTime)
+                robotAngles.append(angles)
+                saveExtra.append(data[0])
+                savePd.append(data[1])
+                saveClassification.append(mapClassificationClassic[currenClassif])
+
+
+
+
         sleep(max(0, 1/sampleRate - (time() - currentTime)))
 
 
