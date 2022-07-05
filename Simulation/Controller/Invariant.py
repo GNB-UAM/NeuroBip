@@ -9,6 +9,8 @@ class Invariant:
         self.inv1Amplitude = pi
         self.inv2Amplitude = pi
 
+        self.LP_end_time = 0
+
         self.mapCicles = mapCicles
         self.mapCiclesCounter = 0
         self.frequencyBase = 0
@@ -42,8 +44,10 @@ class Invariant:
                 self.LP_time = detectionTime
 
         elif detectedNeuron == 1:
-            self.PY_time = detectionTime
+            # self.PY_time = detectionTime
+            self.LP_end_time = detectionTime
         elif detectedNeuron == 2:
+            self.PY_time = self.LP_end_time
             self.PD_time = detectionTime
 
         return None, None

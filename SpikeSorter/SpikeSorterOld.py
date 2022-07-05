@@ -67,10 +67,10 @@ socketComm = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 # Threshold normalized 4-8
 oldClassifier = OldClassifierWrapper(thresholdLP = 4, LPresistance = 40*10, thresholdPD = 2, sampleRate = sampleRate)
 
-currenClassif = 'LP'
-mapClassificationClassic = {'LP': 0, 'PY': 1, 'PD': 2}
-mapClassificationClassicWorstInvariant1 = {'LP': 2, 'PY': 0, 'PD': 1}
-mapClassificationClassicWorstInvariant2 = {'LP': 1, 'PY': 2, 'PD': 0}
+currenClassif = 'LP_start'
+mapClassificationClassic = {'LP_start': 0, 'LP_spike': 1, 'PD_start': 2}
+mapClassificationClassicWorstInvariant1 = {'LP_start': 2, 'LP_spike': 0, 'PD_start': 1}
+mapClassificationClassicWorstInvariant2 = {'LP_start': 1, 'LP_spike': 2, 'PD_start': 0}
 
 def classifyAndSend(extra, pd, currentTime, oldAngles):
     global currenClassif, detectedNeurons, detectionTimes
