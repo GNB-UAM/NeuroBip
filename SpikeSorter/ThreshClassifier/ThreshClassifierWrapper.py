@@ -9,7 +9,7 @@ from ThreshClassifier.ThreshClassifier import ThreshClassifier
 # Normalizer + ThreshClassifier
 class ThreshClassifierWrapper:
 
-    def __init__(self, thresholdLP = 4, LPresistance = 60*10, thresholdPD = 1, sampleRate = 10000, maxCalibrateNormalization = 5):
+    def __init__(self, thresholdLP = 4, thresholdPDLow = 0, thresholdPD = 1, sampleRate = 10000, maxCalibrateNormalization = 5):
         self.normalizerExtra = Normalizer()
         self.normalizerPD = Normalizer()
         self.threshClassifier = ThreshClassifier()
@@ -19,6 +19,7 @@ class ThreshClassifierWrapper:
 
         self.thresholdLP = thresholdLP
         self.thresholdPD = thresholdPD
+        self.thresholdPDLow = thresholdPDLow
 
     def predict(self, dataExtra, dataPD, normalized=False):
         if not normalized and self.counter < self.maxCalibrateNormalization:
@@ -31,6 +32,7 @@ class ThreshClassifierWrapper:
             dataPD = self.normalizerPD.normalize(dataPD)
         
         
+        '''
         stdExtra = self.normalizerExtra.getStd()
         meanExtra = self.normalizerExtra.getMean()
         stdPD = self.normalizerPD.getStd()
@@ -38,8 +40,10 @@ class ThreshClassifierWrapper:
 
         thresholdLP = meanExtra +(self.thresholdLP * stdExtra)
         thresholdPD = meanPD +(self.thresholdPD * stdPD)
+        thresholdPDLow = meanPD +(self.thresholdPDLow * stdPD)
+        '''
 
-        classification = self.oldClassifier.classify(dataExtra, dataPD, thresholdLP, thresholdPD)
+        classification = self.threshClassifier.classify(dataExtra, dataPD, self.thresholdLP, self.thresholdPD, self.thresholdPDLow)
         
         if classification != self.lastClassification:
             self.lastClassification = classification

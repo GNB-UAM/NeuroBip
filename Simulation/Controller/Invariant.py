@@ -21,6 +21,8 @@ class Invariant:
         if detectedNeuron == self.lastNeuron:
             return None, None
 
+        
+
         self.lastNeuron = detectedNeuron
         if detectedNeuron == 0:
             if self.LP_time < self.PY_time and self.PY_time < self.PD_time:
@@ -29,6 +31,10 @@ class Invariant:
                 inv2 = self.PD_time - self.PY_time
                 amplitude1 = inv1 * self.inv1Amplitude / period
                 amplitude2 = inv2 * self.inv2Amplitude / inv1
+
+                f = open("salida.txt", "a")
+                f.write("%f %f %f\n"%(period, inv1, inv2))
+                f.close()
 
                 self.LP_time = detectionTime
 

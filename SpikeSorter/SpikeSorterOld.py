@@ -3,7 +3,7 @@ import numpy as np
 from math import inf, pi
 import matplotlib.pyplot as plt
 import os
-from OldClassifier.OldClassifierWrapper import OldClassifierWrapper
+from ThreshClassifier.ThreshClassifierWrapper import ThreshClassifierWrapper
 from time import sleep, time, strftime
 import socket
 import struct
@@ -18,7 +18,7 @@ SIMULATION = False
 SAVE = True
 TIME = 30 # Offline time in minutes
 
-sampleRate = 1000
+sampleRate = 10000
 #    local/simulation   robot
 ip = '127.0.0.1'#'192.168.4.1'
 
@@ -31,13 +31,27 @@ if not ONLINE:
     extra = dataset.iloc[:, 2].to_numpy()
     pd = dataset.iloc[:, 3].to_numpy()
 
-    extra = extra[::10]
-    pd = pd[::10]
+    #extra = extra[::10]
+    #pd = pd[::10]
 
-    plt.plot(extra[:5*sampleRate], label = 'extra')
-    plt.plot(pd[:5*sampleRate], label = 'pd')
+    '''
+    meanPd = np.mean(pd[:5*sampleRate])
+    stdPd = np.std(pd[:5*sampleRate])
+    normPd = (np.array(pd) - meanPd) / stdPd 
+
+    meanExtra = np.mean(extra[:5*sampleRate])
+    stdExtra = np.std(extra[:5*sampleRate])
+    normExtra = (np.array(extra) - meanExtra) / stdExtra 
+
+    plt.plot(normExtra[:5*sampleRate], label = 'extra')
+    #plt.plot(pd[:5*sampleRate], label = 'pd')
+    plt.plot(normPd[:5*sampleRate], label = 'pd')
+
+
+
     plt.legend()
     plt.show()
+    '''
 
 else:
     
@@ -65,16 +79,16 @@ criticalAngle = 1 #RAD 60 degrees
 socketComm = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 # Threshold normalized 4-8
-oldClassifier = OldClassifierWrapper(thresholdLP = 4, LPresistance = 40*10, thresholdPD = 2, sampleRate = sampleRate)
+threshClassifier = ThreshClassifierWrapper(thresholdLP = 5.5, thresholdPDLow = 0, thresholdPD = 1, sampleRate = sampleRate)
 
 currenClassif = 'LP_start'
-mapClassificationClassic = {'LP_start': 0, 'LP_spike': 1, 'PD_start': 2}
+mapClassificationClassic = {'LP_start': 0, 'LP_spike': 1, 'PD_start': 2, 'PD_spike': 3, 'undef': 4}
 mapClassificationClassicWorstInvariant1 = {'LP_start': 2, 'LP_spike': 0, 'PD_start': 1}
 mapClassificationClassicWorstInvariant2 = {'LP_start': 1, 'LP_spike': 2, 'PD_start': 0}
 
 def classifyAndSend(extra, pd, currentTime, oldAngles):
     global currenClassif, detectedNeurons, detectionTimes
-    classification = oldClassifier.predict(extra, pd)
+    classification = threshClassifier.predict(extra, pd)
     #detectionTime = ((currentTime / 10000) % 1) * 10000
     detectionTime = currentTime - initialTime
     if classification is not None:
